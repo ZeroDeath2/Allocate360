@@ -63,6 +63,15 @@ const TeacherDashboard = () => {
                   <span className="ms-2 d-none d-sm-inline">Manage Exams</span>
                 </Link>
               </li>
+              <li className="w-100">
+                <Link
+                  to={`/teacherDashboard/`+ teacherId +`/allotment`}
+                  className="nav-link px-0 align-middle text-white"
+                >
+                  <i className="fs-4 bi-columns ms-2"></i>
+                  <span className="ms-2 d-none d-sm-inline">Allotment</span>
+                </Link>
+              </li>
               <li className="w-100" onClick={handleLogout}>
               <Link
                   className="nav-link px-0 align-middle text-white"

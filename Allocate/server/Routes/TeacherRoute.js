@@ -8,6 +8,16 @@ router.get('/logout', (req, res) => {
     return res.json({ Status: true })
 })
 
+router.get('/teacher-profile/:teacherId', (req, res) => {
+    const teacherId = req.params.teacherId;
+    const sql = "Select teacher_name,class From teacher Where user_id =  ?;"
+    db.query(sql, [teacherId], (err, result) => {
+        if (err) return res.json({ Status: false });
+        return res.json(result);
+    })
+})
+
+
 router.get('/teacher_count', (req, res) => {
     const sql = "Select count(teacher.teacher_id) as teacher from teacher";
     db.query(sql, (err, result) => {
@@ -151,5 +161,18 @@ router.delete('/delete_exam/:examId', (req, res) => {
         return res.json({ Status: true, Message: "Exam Deleted" })
     })
 })
-
+router.get("/allotment/:teacherId", (req, res) => {
+  const teacherId = req.params.teacherId;
+  var class_name = "";
+  const sql1 = `select class from teacher where user_id = ?`;
+  db.query(sql1, [teacherId], (err, result) => {
+    if (err) return res.json({ Status: false, Error: "Query Error" + err });
+    class_name = result[0].class;
+    const sql = `Select room_no,admission_no,seat_no,exam_name,class  from allotment JOIN exam_detail ON allotment.exam_id = exam_detail.exam_id where class = ?`;
+    const result1 = db.query(sql, [class_name], (err, result1) => {
+      if (err) return res.json({ Status: false, Error: "Query Error" + err });
+      return res.json({ Status: true, Result: result1 });
+    });
+  });
+});
 export { router as teacherRouter };

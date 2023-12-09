@@ -15,7 +15,8 @@ import EditTeacher from "./components/EditTeacher";
 import Exam from "./components/Exam";
 import AddExam from "./components/AddExam";
 import EditExam from "./components/EditExam";
-
+import Allotment from "./components/Allotment";
+import AllotmentT from "./components/AllotmentT";
 import TeacherDashboard from "./components/TeacherDashboard";
 import TeacherProfile from "./components/TeacherProfile";
 import StudentT from "./components/StudentT";
@@ -40,6 +41,7 @@ function App() {
            <Route path="/teacherDashboard/:teacherId/exam" element={<ExamT/>}></Route>
            <Route path="/teacherDashboard/:teacherId/addExam" element={<AddExamT/>}></Route>
            <Route path="/teacherDashboard/:teacherId/edit_exam/:examId" element={<EditExamT/>}></Route>
+           <Route path="/teacherDashboard/:teacherId/allotment" element={<AllotmentT/>}></Route>
         </Route>
         
         <Route path="/dashboard" element={<Dashboard/>}>
@@ -53,6 +55,7 @@ function App() {
           <Route path="/dashboard/exam" element={<Exam/>}></Route>
           <Route path="/dashboard/addExam" element={<AddExam/>}></Route>
           <Route path="/dashboard/edit_exam/:id" element={<EditExam/>}></Route>
+          <Route path="/dashboard/allotment" element={<Allotment/>}></Route>
         </Route>
       </Routes>
     </BrowserRouter>

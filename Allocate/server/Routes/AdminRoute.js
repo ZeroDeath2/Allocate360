@@ -1,6 +1,5 @@
 import express from "express";
 import db from '../utils/db.js';
-import path from "path";
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
@@ -23,9 +22,9 @@ router.post("/login", (req, res) => {
 
 router.get('/student-profile/:id', (req, res) => {
     const id = req.params.id;
-    const sql = "Select student_name,admission_no,Student.class,classroom_no,course from Student Join users On Student.user_id = users.user_id Left Join Exam_detail On Student.student_id = Exam_detail.student_id Where users.user_id =  ?;"
+    const sql = "Select student_name,admission_no,student.class,classroom_no,course,exam_room,DATE_FORMAT(exam_date, '%Y-%m-%d') AS exam_date,exam_name,seat_no from student Join users On Student.user_id = users.user_id Join exam_detail On student.exam_id = exam_detail.exam_id Where users.user_id =  ?;"
     db.query(sql, [id], (err, result) => {
-        if (err) return res.json({ Status: false });
+        if (err) return res.json({ Status: false ,Error: "Query Error"+err});
         return res.json(result);
     })
 })
@@ -200,14 +199,93 @@ router.get('/exam/:id', (req,res) => {
     })
 })
 
-router.post('/add_exam', (req,res) => {
-    const sql = `Insert into exam_detail (exam_name,class,exam_date,exam_room) values(?,?,?,?)`
-    db.query(sql,[req.body.exam_name,req.body.class,req.body.exam_date,req.body.exam_room],(err,result)=>{
-        if(err)return res.json({Status:false,Error:"Query Error"+err});
-        return res.json({Status:true,message:'Exam Added Successfully'})
-    })
-})
+  
+  const updateRoomAllottedStatus = async (seatNo, nextRoom) => {
+    const sql7 = `UPDATE exam_room SET allotted = 1, last_seat_allotted = ? WHERE room_no = ?`;
+    await db.promise().query(sql7, [seatNo, nextRoom]);
+  };
+  
+  
+router.post("/add_exam", async (req, res) => {
+    const sql = `INSERT INTO exam_detail (exam_name, class, exam_date, exam_room) VALUES (?, ?, ?, ?)`;
+  const classname=req.body.class;
+  const examroom=req.body.exam_room;
+    const examname = req.body.exam_name;
+    try {
+      await db.promise().query(sql, [
+        req.body.exam_name,
+        req.body.class,
+        req.body.exam_date,
+        req.body.exam_room,
+      ]);
 
+      const sql0 = `SELECT COUNT(*) as count FROM STUDENT  WHERE class = ? AND allotment_status = 0`;
+    const sql1 = `SELECT ALLOTMENT_STATUS FROM STUDENT WHERE class = ? AND ALLOTMENT_STATUS = 0 GROUP BY CLASS`;
+    const sql9=`SELECT student_id,admission_no FROM student WHERE class = ? AND ALLOTMENT_STATUS = 0`;
+    const result9=await db.promise().query(sql9,[classname]);
+
+
+    const result0 = await db.promise().query(sql0, [classname],(err) => {
+        if(err) return res.json({Status: false, Error: "Query Error"+err})});
+    console.log(result0[0]);
+   
+    const { ALLOTMENT_STATUS } = result0[0];
+  
+    const result1 = await db.promise().query(sql1, [classname],(err) => {
+        if(err) return res.json({Status: false, Error: "Query Error"})});
+        console.log(result1[0]);
+    const { count } = result1[0];
+    const sql10 = `select exam_id from exam_detail where exam_name = ?`;
+    const result10=await db.promise().query(sql10, [examname]);
+    const examId=result10[0][0].exam_id
+    
+  
+    for(let i=0;i<result9[0].length;i++){
+        console.log("hello123",result9[0][i])
+        const sql2 = `SELECT CASE WHEN allotted = 0 THEN TRUE ELSE FALSE END AS is_allotted_zero FROM exam_room WHERE room_no = ?`;
+        const result2 = await db.promise().query(sql2, [examroom],(err) => {
+            if(err) return res.json({Status: false, Error: "Query Error"+err})});
+    
+        
+        const { is_allotted_zero } = result2[0];
+            var seatNo=0;
+        console.log(result2[0]);
+        if (is_allotted_zero==0){
+            const sql3 = `SELECT room_name FROM exam_room WHERE room_order > ( SELECT room_order FROM exam_room WHERE room_name = ?) ORDER BY room_order LIMIT 1`;
+        const result3 = await db.promise().query(sql3, [examroom]);
+        const nextRoom= result3[0].room_name;
+        const sql4 = `SELECT last_seat_allotted FROM exam_room WHERE room_no = ?`;
+        const result4= await db.promise().query(sql4, [examroom]);
+        console.log("last",result4[0][0]);
+        const lastSeatAllotted= result4[0][0].last_seat_allotted;
+        seatNo=lastSeatAllotted+1;
+        }
+        else{
+            const sql4 = `SELECT last_seat_allotted FROM exam_room WHERE room_no = ?`;
+        const result4= await db.promise().query(sql4, [examroom]);
+        console.log(result4[0]);
+        console.log('seat', result4[0])
+        const lastSeatAllotted= result4[0][0].last_seat_allotted;
+        seatNo=lastSeatAllotted+1;
+        
+        const sql5 = `INSERT INTO allotment (room_no, admission_no, seat_no,exam_id) VALUES (?, ?, ?,?)`;
+        await db.promise().query(sql5, [examroom, result9[0][i].admission_no, seatNo,examId]);
+
+        const sql11 = `Update exam_room set last_seat_allotted=? where room_no= ? `;
+        const result12 = await db.promise().query(sql11,[seatNo,examroom]);
+        const sql6 = `UPDATE student SET allotment_status = 1, seat_no=?,exam_id=? WHERE student_id = ?`;
+        const result6 = await db.promise().query(sql6, [seatNo,examId,result9[0][i].student_id]);
+        
+    }
+    
+    }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+    return res.json({Status: true,message:"Success"})
+  });
+  
 router.put('/edit_exam/:id', (req,res) => {
     const id = req.params.id;
     const sql = `Update exam_detail set exam_name = ? ,class = ?, exam_date= ?, exam_room= ? where exam_id = ?`
@@ -222,8 +300,21 @@ router.delete('/delete_exam/:id', (req,res) => {
     const sql = `Delete From exam_detail where exam_id = ?`;
     db.query(sql,[id],(err,result) => {
         if(err) return res.json({Status: false}, {Error: "Query Error"})
+        const sql1=`UPDATE studet set allotment_status=0 ,seat_no=0 from student where exam_id=?`;
+        db.query(sql1,[id],(err,result)=>{
+            if(err) return res.json({Status: false}, {Error: "Query Error"})
+            return res.json({Status: true, Result: result})
+        })
         return res.json({Status: true, Message: "Exam Deleted"})
     })
 })
 
+
+router.get('/allotment',(req,res)=>{
+    const sql=`Select room_no,admission_no,seat_no,exam_name,class  from allotment JOIN exam_detail ON allotment.exam_id = exam_detail.exam_id`;
+    const result1= db.query(sql,(err,result)=>{
+        if(err) return res.json({Status: false,Error: "Query Error"+err})
+        return res.json({Status: true,Result:result})
+    })
+})
 export { router as adminRouter };

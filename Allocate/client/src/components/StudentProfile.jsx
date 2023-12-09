@@ -13,6 +13,7 @@ const StudentProfile = () => {
     // Fetch student profile data from the backend
     axios.get('http://localhost:3001/auth/student-profile/'+id)
       .then(result => {
+        console.log(result.data);
           setStudentProfile(result.data[0])
       })
       .catch(error => console.error('Error fetching data:', error));
@@ -65,23 +66,21 @@ const StudentProfile = () => {
           <h2 className>Examination Details</h2>
           <div className="examination-details-inner-container">
             <div className="left-column">
+              
               <div className="student-details-col">
-                <p><strong>Subject Code:</strong> {studentProfile.exam_id}</p>
+                <p><strong>Exam Room No:</strong> {studentProfile.exam_room}</p>
               </div>
-              {/* <div className="student-details-col">
-                <p><strong>Exam Room No:</strong> {studentProfile.exam_room_no}</p>
-              </div> */}
-              {/* <div className="student-details-col">
+              <div className="student-details-col">
                 <p><strong>Exam Date:</strong> {studentProfile.exam_date}</p>
-              </div> */}
+              </div>
             </div>
             <div className="right-column">
-              {/* <div className="student-details-col">
-                <p><strong>Subject:</strong> {studentProfile.subject}</p>
-              </div> */}
-              {/* <div className="student-details-col">
+              <div className="student-details-col">
+                <p><strong>Subject:</strong> {studentProfile.exam_name}</p>
+              </div>
+              <div className="student-details-col">
                 <p><strong>Seat No:</strong> {studentProfile.seat_no}</p>
-              </div> */}
+              </div>
             </div>
           </div>
         </div>
